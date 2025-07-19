@@ -1,0 +1,41 @@
+# Copy this file to .env and update the values as needed
+# Database Configuration (extracted from config_core.py)
+DB_USERNAME=tools_ml
+DB_PASSWORD=Focu$2021
+DB_DSN=fcsouth.rightel.ir
+DB_PORT=1521
+DB_HOST=10.200.6.227
+DB_ENCODING=UTF-8
+
+# Ticketing System Configuration (extracted from raise_ticket.py)
+TICKETING_API_URL=https://10.201.6.13/KM_UCMS_TT
+TICKETING_USERNAME=EX.F.Jabarimaleki
+TICKETING_PASSWORD=7s&aBvP/#49.qjC7
+TICKETING_BEARER_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJLTV9VQ01TIiwiaWF0IjoxNjQxMjAwOTQ3LCJleHAiOjIzMDM4ODg5NDcsImF1ZCI6Ind3dy5rbS1lbC5pciIsInN1YiI6ImluZm9Aa20tZWwuaXIifQ.3e3MuRM_TktHSwi7Vitbj5N0zR0E1Dg2H_t1T1zE0ZY
+
+# Email Configuration (extracted from send_ticket_core.py)
+EMAIL_SMTP_SERVER=mail.rightel.ir
+EMAIL_SMTP_PORT=465
+EMAIL_USERNAME=Performance-Dev
+EMAIL_PASSWORD=Focus2021
+EMAIL_FROM_ADDRESS=Performance-Dev@rightel.ir
+EMAIL_USE_TLS=true
+
+# Email Recipients
+EMAIL_TO=Performance-Core@rightel.ir
+EMAIL_CC=Performance-Tools@rightel.ir,EX.F.Jabarimaleki@rightel.ir
+
+# Application Configuration
+LOG_LEVEL=INFO
+DEBUG_MODE=false
+ENABLE_METRICS=false
+
+# Security Configuration (IMPORTANT: Change these before using in production!)
+SECRET_KEY=your_secret_key_here_change_this
+ENCRYPTION_KEY=your_encryption_key_here_change_this
+
+# File Paths (optional - will use defaults if not set)
+CHART_OUTPUT_DIR=./output/charts
+LOG_OUTPUT_DIR=./logs
+TEMPLATE_DIR=./templates
+TEMP_DIR=./temp 

@@ -1,0 +1,252 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' lang='en'>
+<head>
+    <meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <meta http-equiv='X-UA-Compatible' content='IE=edge' />
+    <meta name='format-detection' content='telephone=no' />
+    <title>RG Interface Traffic Alert</title>
+    <style type='text/css'>
+        /* Reset styles for email clients */
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+        body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
+        a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; font-size: inherit !important; font-family: inherit !important; font-weight: inherit !important; line-height: inherit !important; }
+        /* Responsive design */
+        @media screen and (max-width: 600px) {
+            .container { width: 100% !important; max-width: 100% !important; }
+            .stack { display: block !important; width: 100% !important; padding: 0 0 20px 0 !important; }
+            .hide-mobile { display: none !important; }
+            .mobile-padding { padding: 20px !important; }
+            h1 { font-size: 24px !important; }
+            h2 { font-size: 18px !important; }
+            h3 { font-size: 16px !important; }
+            .stats-grid td { padding: 0 0 20px 0 !important; width: 100% !important; display: block !important; }
+        }
+        /* Outlook specific */
+        @media screen and (-webkit-min-device-pixel-ratio: 0) {
+            span~span { color: #ffffff; }
+        }
+    </style>
+    <!--[if mso]>
+    <style type='text/css'>
+        body, table, td { font-family: Arial, sans-serif !important; }
+        .border-radius { border-radius: 0 !important; }
+    </style>
+    <![endif]-->
+</head>
+<body style='margin: 0; padding: 20px; font-family: "Segoe UI", Arial, sans-serif; background-color: #6d78b8; min-height: 100%;'>
+    <!-- Main Email Container -->
+    <table width='100%' border='0' cellspacing='0' cellpadding='0' style='max-width: 800px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);' class='container'>
+        <tr>
+            <td align='center' style='padding: 0;'>
+                <!-- Header Section -->
+                <table width='100%' border='0' cellspacing='0' cellpadding='0'>
+                    <tr>
+                        <td align='center' style='background-color: #8c54b7; padding: 20px; text-align: center; border-top-left-radius: 10px; border-top-right-radius: 10px;' class='border-radius'>
+                            <h1 style='color: white; font-size: 24px; font-weight: 700; margin: 0 0 10px 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);'>
+                                🚨 RG Interface Traffic Alert
+                            </h1>
+                            <p style='color: #ffffff; font-size: 14px; font-weight: 300; margin: 0; opacity: 0.9;'>
+                                Network Performance AI Anomaly Detection System
+                            </p>
+                            <table border='0' cellspacing='0' cellpadding='0' align='center' style='margin-top: 10px;'>
+                                <tr>
+                                    <td align='center' style='background-color: #ff886b; color: white; padding: 8px 15px; border-radius: 20px; font-weight: bold; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);'>
+                                        CRITICAL ALERT DETECTED
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                <!-- Main Content -->
+                <table width='100%' border='0' cellspacing='0' cellpadding='0'>
+                    <tr>
+                        <td style='padding: 20px;' class='mobile-padding'>
+                            <!-- Issue Summary -->
+                            <table width='100%' border='0' cellspacing='0' cellpadding='0' style='margin-bottom: 20px;'>
+                                <tr>
+                                    <td style='background-color: #ff6b6b; color: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);' class='border-radius'>
+                                        <h2 style='font-size: 18px; margin: 0 0 10px 0; display: block; font-weight: bold;'>
+                                            <span style='font-size: 20px; margin-right: 8px;'>⚠️</span> Traffic Anomaly Detected
+                                        </h2>
+                                        <p style='margin: 5px 0; font-size: 14px;'><strong>Interface:</strong> <span style='color: #ffeaa7;'>${interface}</span></p>
+                                        <p style='margin: 5px 0; font-size: 14px;'><strong>Node:</strong> <span style='color: #ffeaa7;'>${node_name}</span></p>
+                                        <p style='margin: 5px 0; font-size: 14px;'><strong>Detected:</strong> <span style='color: #ffeaa7;'>${detected_time}</span></p>
+                                        <p style='margin: 5px 0; font-size: 14px;'><strong>Anomaly Type:</strong> <span style='color: #ffeaa7;'>${anomaly_type}</span></p>
+                                        <p style='margin: 5px 0; font-size: 14px;'><strong>Severity Level:</strong> <span style='color: #ffeaa7;'>${severity}</span></p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <!-- Ticket Reference -->
+                            <table width='100%' border='0' cellspacing='0' cellpadding='0' style='margin-bottom: 20px;'>
+                                <tr>
+                                    <td align='center' style='background-color: #2d3436; padding: 15px; border-radius: 10px; text-align: center;' class='border-radius'>
+                                        <div style='color: #00b894; font-weight: bold; font-size: 16px; margin-bottom: 10px;'>
+                                            🎫 Ticket Number: ${ticket_number}
+                                        </div>
+                                        <table border='0' cellspacing='0' cellpadding='0' align='center'>
+                                            <tr>
+                                                <td align='center' style='background-color: #00b894; color: white; text-decoration: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; font-size: 14px; box-shadow: 0 3px 10px rgba(0, 184, 148, 0.3);'>
+                                                    <a href='${ticket_link}' style='color: white; text-decoration: none;'>📋 View Ticket Details</a>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            <!-- Quick Stats Grid -->
+                            <table width='100%' border='0' cellspacing='0' cellpadding='0' style='margin: 20px 0;' class='stats-grid'>
+                                <tr>
+                                    <td style='padding: 0 10px 15px 0; width: 25%;' class='stack'>
+                                        <table width='100%' border='0' cellspacing='0' cellpadding='0'>
+                                            <tr>
+                                                <td align='center' style='background-color: #ffffff; padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 3px 10px rgba(0,0,0,0.1); border: 1px solid #e9ecef;' class='border-radius'>
+                                                    <div style='font-size: 24px; font-weight: bold; color: #c850c0; margin-bottom: 5px;'>${current_traffic}</div>
+                                                    <div style='font-size: 11px; color: #636e72; text-transform: uppercase; letter-spacing: 1px;'>Anomaly count(10H)</div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                    <td style='padding: 0 10px 15px 10px; width: 25%;' class='stack'>
+                                        <table width='100%' border='0' cellspacing='0' cellpadding='0'>
+                                            <tr>
+                                                <td align='center' style='background-color: #ffffff; padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 3px 10px rgba(0,0,0,0.1); border: 1px solid #e9ecef;' class='border-radius'>
+                                                    <div style='font-size: 24px; font-weight: bold; color: #c850c0; margin-bottom: 5px;'>${threshold_exceeded}</div>
+                                                    <div style='font-size: 11px; color: #636e72; text-transform: uppercase; letter-spacing: 1px;'>Threshold Exceeded</div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                    <td style='padding: 0 10px 15px 10px; width: 25%;' class='stack'>
+                                        <table width='100%' border='0' cellspacing='0' cellpadding='0'>
+                                            <tr>
+                                                <td align='center' style='background-color: #ffffff; padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 3px 10px rgba(0,0,0,0.1); border: 1px solid #e9ecef;' class='border-radius'>
+                                                    <div style='font-size: 24px; font-weight: bold; color: #c850c0; margin-bottom: 5px;'>${duration}</div>
+                                                    <div style='font-size: 11px; color: #636e72; text-transform: uppercase; letter-spacing: 1px;'>Duration</div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                    <td style='padding: 0 0 15px 10px; width: 25%;' class='stack'>
+                                        <table width='100%' border='0' cellspacing='0' cellpadding='0'>
+                                            <tr>
+                                                <td align='center' style='background-color: #ffffff; padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 3px 10px rgba(0,0,0,0.1); border: 1px solid #e9ecef;' class='border-radius'>
+                                                    <div style='font-size: 24px; font-weight: bold; color: #8c54b7; margin-bottom: 5px;'>${affected_users}</div>
+                                                    <div style='font-size: 11px; color: #636e72; text-transform: uppercase; letter-spacing: 1px;'>analysis history</div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            <!-- Interface Details Table -->
+                            <h3 style='color: #2d3436; margin: 20px 0 15px 0; font-size: 18px;'>📊 Interface Traffic Details</h3>
+                            <table width='100%' border='0' cellspacing='0' cellpadding='0' style='margin: 20px 0; box-shadow: 0 5px 15px rgba(0,0,0,0.1);'>
+                                <tr>
+                                    <td>
+                                        <table width='100%' border='0' cellspacing='0' cellpadding='0'>
+                                            <tr>
+                                                <th align='center' style='background-color: #8c54b7; color: white; font-weight: bold; padding: 10px; text-align: center; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; width: 16.67%;'>Interface</th>
+                                                <th align='center' style='background-color: #8c54b7; color: white; font-weight: bold; padding: 10px; text-align: center; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; width: 16.67%;'>Current Traffic</th>
+                                                <th align='center' style='background-color: #8c54b7; color: white; font-weight: bold; padding: 10px; text-align: center; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; width: 16.67%;'>Baseline</th>
+                                                <th align='center' style='background-color: #8c54b7; color: white; font-weight: bold; padding: 10px; text-align: center; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; width: 16.67%;'>Threshold</th>
+                                                <th align='center' style='background-color: #8c54b7; color: white; font-weight: bold; padding: 10px; text-align: center; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; width: 16.67%;'>Status</th>
+                                                <th align='center' style='background-color: #8c54b7; color: white; font-weight: bold; padding: 10px; text-align: center; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; width: 16.67%;'>Utilization</th>
+                                            </tr>
+                                            <tr>
+                                                <td align='center' style='background-color: #f8f9fa; padding: 10px; text-align: center; border-bottom: 1px solid #e9ecef; font-size: 13px;'><strong>${interface}</strong></td>
+                                                <td align='center' style='background-color: #f8f9fa; padding: 10px; text-align: center; border-bottom: 1px solid #e9ecef; color: #ff6b6b; font-weight: bold; font-size: 13px;'>${current_traffic_val}</td>
+                                                <td align='center' style='background-color: #f8f9fa; padding: 10px; text-align: center; border-bottom: 1px solid #e9ecef; color: #00b894; font-weight: bold; font-size: 13px;'>${baseline}</td>
+                                                <td align='center' style='background-color: #f8f9fa; padding: 10px; text-align: center; border-bottom: 1px solid #e9ecef; color: #feca57; font-weight: bold; font-size: 13px;'>${threshold}</td>
+                                                <td align='center' style='background-color: #f8f9fa; padding: 10px; text-align: center; border-bottom: 1px solid #e9ecef; color: #ff6b6b; font-weight: bold; font-size: 13px;'>🔴 CRITICAL</td>
+                                                <td align='center' style='background-color: #f8f9fa; padding: 10px; text-align: center; border-bottom: 1px solid #e9ecef; color: #ff6b6b; font-weight: bold; font-size: 13px;'>${utilization}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            <!-- Chart Sections -->
+                            <!-- 36 Hours Analysis Plot (Originally Performance Metrics, now appears first) -->
+                            <table width='100%' border='0' cellspacing='0' cellpadding='0' style='margin: 20px 0;'>
+                                <tr>
+                                    <td style='background-color: #f8f9fa; padding: 20px; border-radius: 10px; border: 2px solid #e9ecef; text-align: center;' class='border-radius'>
+                                        <h3 style='font-size: 18px; font-weight: bold; color: #2d3436; margin: 0 0 15px 0;'>📊 36 Hours Analysis</h3>
+                                        <table width='100%' border='0' cellspacing='0' cellpadding='0'>
+                                            <tr>
+                                                <td align='center' style='background-color: #ddd6fe; height: 250px; border-radius: 8px; font-size: 16px; color: #6366f1; font-weight: bold; border: 2px dashed #a5b4fc; vertical-align: middle;' class='border-radius'>
+                                                    <div><img src="cid:${traffic_trend}" alt="36 Hours Analysis Chart" style="max-width: 100%; height: auto; border: 1px solid #cccccc;"/></div>
+                                                    <small style='margin-top: 10px; display: block; font-size: 12px;'>Performance metrics and KPI chart (36 Hours)</small>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            <!-- One Month Analysis Plot (Originally Traffic Trend, now appears second) -->
+                            <table width='100%' border='0' cellspacing='0' cellpadding='0' style='margin: 20px 0;'>
+                                <tr>
+                                    <td style='background-color: #f8f9fa; padding: 20px; border-radius: 10px; border: 2px solid #e9ecef; text-align: center;' class='border-radius'>
+                                        <h3 style='font-size: 18px; font-weight: bold; color: #2d3436; margin: 0 0 15px 0;'>📈 One Month Analysis </h3>
+                                        <table width='100%' border='0' cellspacing='0' cellpadding='0'>
+                                            <tr>
+                                                <td align='center' style='background-color: #ddd6fe; height: 250px; border-radius: 8px; font-size: 16px; color: #6366f1; font-weight: bold; border: 2px dashed #a5b4fc; vertical-align: middle;' class='border-radius'>
+                                                    <div><img src="cid:${performance_metrics}" alt="One Month Analysis Chart" style="max-width: 100%; height: auto; border: 1px solid #cccccc;"/></div>
+                                                    <small style='margin-top: 10px; display: block; font-size: 12px;'>Real-time traffic monitoring chart (30 Days)</small>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            <!-- Recommendations -->
+                            <table width='100%' border='0' cellspacing='0' cellpadding='0' style='margin-bottom: 20px;'>
+                                <tr>
+                                    <td style='background-color: #feca57; color: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 15px rgba(254, 202, 87, 0..3);' class='border-radius'>
+                                        <h2 style='font-size: 18px; margin: 0 0 10px 0; display: block; font-weight: bold;'>
+                                            <span style='font-size: 20px; margin-right: 8px;'>💡</span> Recommended Actions
+                                        </h2>
+                                        <ul style='text-align: left; margin: 0; padding-left: 20px; font-size: 14px;'>
+                                            <li style='margin: 5px 0;'>Immediate traffic load balancing to alternate routes</li>
+                                            <li style='margin: 5px 0;'>Verify interface capacity and hardware status</li>
+                                            <li style='margin: 5px 0;'>Monitor downstream effects on user experience</li>
+                                            <li style='margin: 5px 0;'>Coordinate with network operations team</li>
+                                            <li style='margin: 5px 0;'>Prepare for potential capacity upgrade if trend continues</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                <!-- Signature Section -->
+                <table width='100%' border='0' cellspacing='0' cellpadding='0'>
+                    <tr>
+                        <td align='center' style='background-color: #2d3436; color: white; padding: 20px; text-align: center;'>
+                            <h3 style='font-size: 18px; margin: 0 0 10px 0; color: #00b894;'>🤖 Network Performance AI System</h3>
+                            <p style='font-size: 13px; margin: 5px 0; opacity: 0.9;'><strong>Rightel Communications</strong></p>
+                            <p style='font-size: 13px; margin: 5px 0; opacity: 0.9;'>📧 Performance-Core@rightel.ir | Performance-Tools@rightel.ir</p>
+                            <p style='font-size: 13px; margin: 5px 0; opacity: 0.9;'>🌐 Core Performance Team</p>
+                            <p style='margin-top: 10px; font-size: 11px; opacity: 0.7;'>
+                                This alert was automatically generated by our AI-powered network monitoring system.<br />
+                                For technical support or to update notification preferences, contact the Performance Tools team.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                <!-- Footer -->
+                <table width='100%' border='0' cellspacing='0' cellpadding='0'>
+                    <tr>
+                        <td align='center' style='background-color: #0984e3; color: white; padding: 15px; text-align: center; font-size: 11px; opacity: 0.9; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;' class='border-radius'>
+                            <p style='margin: 5px 0;'>⚡ Powered by Network Performance AI | Real-time Monitoring & Anomaly Detection</p>
+                            <p style='margin: 5px 0;'>Generated on ${generated_time} UTC | System ID: ${system_id}</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html> 
