@@ -48,7 +48,7 @@ python scripts/demo_anomaly_workflow.py
 ## 🔧 Installation & Setup
 
 ### 1. Environment Setup
-```bash
+        ```bash
 # Clone/navigate to project directory
 cd core_rg
 
@@ -56,13 +56,13 @@ cd core_rg
 source setup_env.sh
 
 # Copy and configure environment file
-cp env_template.txt .env
+        cp env_template.txt .env
 # Edit .env with your credentials
 nano .env
 ```
 
 ### 2. Install Python Dependencies
-```bash
+    ```bash
 # Install all required packages
 pip install -r requirements.txt
 
@@ -71,7 +71,7 @@ pip install prophet pandas numpy matplotlib seaborn cx_Oracle python-dotenv
 ```
 
 ### 3. Oracle Client Setup (if needed)
-```bash
+    ```bash
 # For Ubuntu/Debian
 sudo apt-get install oracle-instantclient19.3-basic
 
@@ -83,9 +83,9 @@ export ORACLE_HOME=/usr/lib/oracle/19.3/client64
 ## 🎯 Usage
 
 ### Demo Mode (Recommended for testing)
-```bash
+        ```bash
 # Test with simulated data (no database required)
-python scripts/demo_anomaly_workflow.py --test
+        python scripts/demo_anomaly_workflow.py --test
 
 # Analyze specific node
 python scripts/demo_anomaly_workflow.py --node TH1VCGH1_70 --test
@@ -95,7 +95,7 @@ python scripts/demo_anomaly_workflow.py --max-nodes 5
 ```
 
 ### Production Mode
-```bash
+        ```bash
 # Run with real Oracle database
 python scripts/demo_anomaly_workflow.py
 
@@ -107,7 +107,7 @@ python scripts/demo_anomaly_workflow.py --test
 ```
 
 ### Command Line Options
-```bash
+        ```bash
 --test              # Send emails to test recipient instead of production
 --node NODE_NAME    # Analyze specific node only
 --kpi KPI_COLUMN    # Analyze specific KPI (default: total_rg)
@@ -217,13 +217,13 @@ templates/email_templates/sg_rg_traffic_alert.html
 ## ⏰ Automated Scheduling
 
 ### Cron Setup (Linux/macOS)
-```bash
+   ```bash
 # Edit crontab
-crontab -e
+   crontab -e
 
 # Run every 4 hours
-0 */4 * * * cd /home/tools/Documents/core_rg && /home/tools/Documents/core_rg/.venv/bin/python /home/tools/Documents/core_rg/scripts/demo_anomaly_workflow.py >> /home/tools/Documents/core_rg/cron_output.log 2>&1
-```
+   0 */4 * * * cd /home/tools/Documents/core_rg && /home/tools/Documents/core_rg/.venv/bin/python /home/tools/Documents/core_rg/scripts/demo_anomaly_workflow.py >> /home/tools/Documents/core_rg/cron_output.log 2>&1
+   ```
 
 ### Cron Best Practices
 - Use absolute paths for Python interpreter and script
@@ -234,7 +234,7 @@ crontab -e
 ## 🔍 Monitoring & Debugging
 
 ### Log Files
-```bash
+   ```bash
 # Application logs
 tail -f logs/app.log
 
@@ -246,7 +246,7 @@ LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR
 ```
 
 ### Health Checks
-```bash
+   ```bash
 # Test database connectivity
 python -c "from src.data.database import DatabaseService; db=DatabaseService(); print('DB OK' if db.test_connection() else 'DB FAIL')"
 
@@ -286,7 +286,7 @@ chmod -R 755 logs/ output/ temp/
 ## 🔒 Security & Configuration
 
 ### Environment Variables (.env)
-```bash
+   ```bash
 # Database credentials
 DATABASE_HOST=10.200.6.227
 DATABASE_PORT=1521  
@@ -339,3 +339,40 @@ SECRET_KEY=your_secret_key
 ---
 
 **🎯 Complete Network KPI Anomaly Detection System - Ready for Production!** 🚀
+
+```mermaid
+graph TB
+    Start[Start Workflow] --> Init[Initialize Components]
+    Init --> PreCheck{Prerequisites Check}
+    
+    PreCheck -->|❌ FAIL| Error1[Log Error & Exit]
+    PreCheck -->|✅ PASS| LoadConfig[Load Configuration]
+    
+    LoadConfig --> DBConnect[Connect to Oracle Database]
+    DBConnect --> GetNodes[Get Distinct Active Nodes]
+    
+    GetNodes --> LoopStart{For Each Node}
+    LoopStart -->|No More Nodes| Summary[Generate Summary Report]
+    LoopStart -->|Process Node| FetchData[Fetch 30-Day Historical Data]
+    
+    FetchData --> DataCheck{Data Available?}
+    DataCheck -->|❌ NO| NextNode[Skip to Next Node]
+    DataCheck -->|✅ YES| Prophet[Run Prophet Anomaly Detection]
+    
+    Prophet --> AnalyzeRecent[Check Last 10 Hours for Anomalies]
+    AnalyzeRecent --> AlertDecision{Anomalies > Threshold?}
+    
+    AlertDecision -->|❌ NO| LogNormal[Log: No Alert Needed]
+    AlertDecision -->|✅ YES| GenerateCharts[Generate 36h & 30d Charts]
+    
+    GenerateCharts --> CreateEmail[Create HTML Email with Charts]
+    CreateEmail --> SendEmail[Send Email Alert]
+    SendEmail --> CleanFiles[Clean Output Directory]
+    
+    LogNormal --> NextNode
+    CleanFiles --> NextNode
+    NextNode --> LoopStart
+    
+    Summary --> End[End Workflow]
+    Error1 --> End
+```
