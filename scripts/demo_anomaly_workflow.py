@@ -250,6 +250,67 @@ class DatabaseService:
             return rg_node.split('_')[0]
         return rg_node
     
+    def extract_rg_code(self, node_name: str) -> str:
+        """Extract RG code from a node name (e.g., 'TH1VCGH1_70' -> '70').
+        
+        Args:
+            node_name: Full node name like 'TH1VCGH1_70'
+            
+        Returns:
+            RG code like '70' or None if no code is found
+        """
+        if '_' in node_name:
+            return node_name.split('_')[-1]
+        return None
+    
+    def get_distinct_rg_codes(self, hours_back: int = 24) -> List[str]:
+        """Get distinct RG codes from recent data.
+        
+        Args:
+            hours_back: Hours to look back for data
+            
+        Returns:
+            List of distinct RG codes
+        """
+        query = """
+        SELECT DISTINCT SUBSTR(SNODE, INSTR(SNODE, '_') + 1) AS RG_CODE
+        FROM FOCUSADM.H3G_CG_RATING_MAINTABLE 
+        WHERE SDATE >= SYSDATE - :hours_back/24
+        AND SNODE LIKE '%\\_%' ESCAPE '\\'
+        AND REGEXP_LIKE(SUBSTR(SNODE, INSTR(SNODE, '_') + 1), '^[0-9]+$')
+        ORDER BY RG_CODE
+        """
+        
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, {'hours_back': hours_back})
+            results = cursor.fetchall()
+            return [row[0] for row in results if row[0]]
+    
+    def get_nodes_by_rg_code(self, rg_code: str, hours_back: int = 24) -> List[str]:
+        """Get all nodes associated with a specific RG code.
+        
+        Args:
+            rg_code: RG code like '70'
+            hours_back: Hours to look back for data
+            
+        Returns:
+            List of node names with the specified RG code
+        """
+        query = """
+        SELECT DISTINCT SNODE
+        FROM FOCUSADM.H3G_CG_RATING_MAINTABLE 
+        WHERE SDATE >= SYSDATE - :hours_back/24
+        AND SNODE LIKE '%\\_' || :rg_code ESCAPE '\\'
+        ORDER BY SNODE
+        """
+        
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, {'hours_back': hours_back, 'rg_code': rg_code})
+            results = cursor.fetchall()
+            return [row[0] for row in results if row[0]]
+    
     def get_associated_cg_nodes(self, rg_base: str, hours_back: int = 24) -> List[str]:
         """Get all CG nodes associated with an RG base.
         
@@ -313,6 +374,51 @@ class DatabaseService:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
+            
+            # Fetch results
+            columns = ['timestamp', 'rg_downlink', 'rg_uplink', 'total_rg']
+            results = cursor.fetchall()
+            
+            if not results:
+                return pd.DataFrame(columns=columns)
+            
+            # Create DataFrame
+            df = pd.DataFrame(results, columns=columns)
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df = df.sort_values('timestamp').reset_index(drop=True)
+            
+            # Fill missing values with interpolation
+            for col in ['rg_downlink', 'rg_uplink', 'total_rg']:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+                df[col] = df[col].interpolate()
+                
+            return df
+            
+    def get_aggregated_data_by_rg_code(self, rg_code: str, days_back: int = 30) -> pd.DataFrame:
+        """Get aggregated historical KPI data for all nodes with a specific RG code.
+        
+        Args:
+            rg_code: RG code like '70'
+            days_back: Number of days of historical data
+            
+        Returns:
+            DataFrame with aggregated traffic data for this RG code
+        """
+        query = """
+        SELECT SDATE,
+               SUM(CNT1_167774004) AS rg_downlink,
+               SUM(CNT2_167774004) AS rg_uplink,
+               SUM(CNT1_167774004 + CNT2_167774004) AS total_rg
+        FROM FOCUSADM.H3G_CG_RATING_MAINTABLE
+        WHERE SNODE LIKE '%\\_' || :rg_code ESCAPE '\\'
+        AND SDATE >= SYSDATE - :days_back
+        GROUP BY SDATE
+        ORDER BY SDATE
+        """
+        
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, {'rg_code': rg_code, 'days_back': days_back})
             
             # Fetch results
             columns = ['timestamp', 'rg_downlink', 'rg_uplink', 'total_rg']
@@ -615,6 +721,147 @@ class VisualizationService:
             elif '36_Hours' in Path(p_path).name:
                 plot_files['36_Hours'] = p_path
         return plot_files
+        
+    def plot_rg_code_analysis(
+        self,
+        rg_code: str,
+        df_total: pd.DataFrame,
+        df_total_with_anomalies: pd.DataFrame,
+        df_rg_dl: pd.DataFrame = None,
+        df_rg_ul: pd.DataFrame = None,
+        time_range: str = '36 Hours'
+    ) -> Optional[str]:
+        """Plot RG code traffic analysis with 4 subplots as requested.
+        
+        Subplots:
+        (1) Total DL traffic with anomaly detection (4,1,1)
+        (2) Total UL traffic with anomaly detection (4,1,2)
+        (3) DL traffic from RG to any SG (4,1,3)
+        (4) UL traffic from RG to any SG (4,1,4)
+        
+        Args:
+            rg_code: The RG code (e.g., '70')
+            df_total: DataFrame with aggregated total traffic data
+            df_total_with_anomalies: DataFrame with anomalies detected on total data
+            df_rg_dl: DataFrame with downlink data for this RG
+            df_rg_ul: DataFrame with uplink data for this RG
+            time_range: Time range to display ('36 Hours' or '30 Days')
+            
+        Returns:
+            Path to the saved plot file
+        """
+        if df_total.empty:
+            logger.warning(f"No data to plot for RG code {rg_code}.")
+            return None
+            
+        days = 1.5 if time_range == '36 Hours' else 30
+            
+        # Create figure with 4 rows, 1 column layout
+        fig, axes = plt.subplots(4, 1, figsize=(15, 20), sharex=True)
+        
+        # Filter data for the specific time range
+        end_time = df_total['timestamp'].max()
+        start_time = end_time - timedelta(days=days)
+        
+        df_range = df_total[df_total['timestamp'] >= start_time]
+        df_anomalies_range = df_total_with_anomalies[df_total_with_anomalies['timestamp'] >= start_time]
+        
+        if df_range.empty:
+            logger.warning(f"No data in {time_range} range for RG code {rg_code}.")
+            plt.close()
+            return None
+            
+        # Plot 1: Total DL traffic with anomaly detection (4,1,1)
+        ax1 = axes[0]
+        sns.lineplot(x='timestamp', y='rg_downlink', data=df_range, 
+                    label=f'Total DL Traffic', ax=ax1, color='blue', linewidth=1.5)
+        
+        # Add anomalies if present
+        if 'anomaly' in df_anomalies_range.columns:
+            dl_anomalies = df_anomalies_range[
+                (df_anomalies_range['anomaly'] == True) & 
+                (df_anomalies_range['timestamp'] >= start_time)
+            ]
+            if not dl_anomalies.empty:
+                sns.scatterplot(x='timestamp', y='rg_downlink', data=dl_anomalies, 
+                                color='red', s=100, label='Anomaly', ax=ax1, marker='o')
+                
+        ax1.set_title(f"Total Downlink Traffic for All RGs with Anomaly Detection ({time_range})", fontsize=16)
+        ax1.set_ylabel("Downlink Traffic", fontsize=12)
+        ax1.legend(fontsize=10)
+        
+        # Plot 2: Total UL traffic with anomaly detection (4,1,2)
+        ax2 = axes[1]
+        sns.lineplot(x='timestamp', y='rg_uplink', data=df_range, 
+                    label=f'Total UL Traffic', ax=ax2, color='green', linewidth=1.5)
+                    
+        # Add anomalies if present
+        if 'anomaly' in df_anomalies_range.columns:
+            ul_anomalies = df_anomalies_range[
+                (df_anomalies_range['anomaly'] == True) & 
+                (df_anomalies_range['timestamp'] >= start_time)
+            ]
+            if not ul_anomalies.empty:
+                sns.scatterplot(x='timestamp', y='rg_uplink', data=ul_anomalies, 
+                                color='red', s=100, label='Anomaly', ax=ax2, marker='o')
+                
+        ax2.set_title(f"Total Uplink Traffic for All RGs with Anomaly Detection ({time_range})", fontsize=16)
+        ax2.set_ylabel("Uplink Traffic", fontsize=12)
+        ax2.legend(fontsize=10)
+        
+        # Plot 3: DL traffic from RG to any SG (4,1,3)
+        ax3 = axes[2]
+        if df_rg_dl is not None and not df_rg_dl.empty:
+            df_rg_dl_range = df_rg_dl[df_rg_dl['timestamp'] >= start_time]
+            if not df_rg_dl_range.empty:
+                sns.lineplot(x='timestamp', y='rg_downlink', data=df_rg_dl_range, 
+                            label=f'RG {rg_code} DL Traffic', ax=ax3, color='orange', linewidth=1.5)
+        ax3.set_title(f"Downlink Traffic from RG {rg_code} to Core Gateways ({time_range})", fontsize=16)
+        ax3.set_ylabel("Downlink Traffic", fontsize=12)
+        ax3.legend(fontsize=10)
+        
+        # Plot 4: UL traffic from RG to any SG (4,1,4)
+        ax4 = axes[3]
+        if df_rg_ul is not None and not df_rg_ul.empty:
+            df_rg_ul_range = df_rg_ul[df_rg_ul['timestamp'] >= start_time]
+            if not df_rg_ul_range.empty:
+                sns.lineplot(x='timestamp', y='rg_uplink', data=df_rg_ul_range, 
+                            label=f'RG {rg_code} UL Traffic', ax=ax4, color='purple', linewidth=1.5)
+        ax4.set_title(f"Uplink Traffic from RG {rg_code} to Core Gateways ({time_range})", fontsize=16)
+        ax4.set_ylabel("Uplink Traffic", fontsize=12)
+        ax4.set_xlabel("Time", fontsize=14)
+        ax4.legend(fontsize=10)
+        
+        # Format x-axis on all subplots
+        for ax in axes:
+            ax.tick_params(axis='x', rotation=45, labelsize=10)
+            ax.tick_params(axis='y', labelsize=10)
+            
+            # Set common x-axis format based on time span
+            if days > 7:
+                ax.xaxis.set_major_locator(mdates.DayLocator(interval=max(1, int(days / 10))))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+            elif days > 1:
+                ax.xaxis.set_major_locator(mdates.HourLocator(interval=12))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M'))
+            else:
+                ax.xaxis.set_major_locator(mdates.HourLocator(interval=max(1, int(24 / 10))))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        
+        plt.tight_layout()
+        
+        # Save plot
+        plot_filename = f"RG_{rg_code}_traffic_analysis_{time_range.replace(' ', '_')}.png"
+        plot_path = self.output_dir / plot_filename
+        try:
+            plt.savefig(plot_path, dpi=100, bbox_inches='tight')
+            plt.close()
+            logger.info(f"RG code analysis plot saved to {plot_path}")
+            return str(plot_path)
+        except Exception as e:
+            logger.error(f"Failed to save RG code analysis plot {plot_path}: {e}")
+            plt.close()
+            return None
 
     def plot_prophet_components(self, model, forecast, node_name: str, metric_column: str) -> Optional[str]:
         """Plot Prophet model components."""
@@ -926,6 +1173,272 @@ class AnomalyWorkflow:
         self.viz_service = VisualizationService(self.config)
         self.email_service = EmailService(self.config)
         self.processed_nodes_count = 0
+        
+    def run_rg_code_analysis(self, rg_code: str, test_email_recipient: Optional[str] = None) -> None:
+        """Run anomaly detection and alerting for all traffic related to a specific RG code.
+        
+        This method aggregates traffic from all nodes with the same RG code and creates
+        visualizations as specified in the requirements.
+        
+        Args:
+            rg_code: The RG code to analyze (e.g., '70')
+            test_email_recipient: Optional email recipient for test mode
+        """
+        logger.info("\n" + "=" * 80)
+        logger.info(f"{'🔬 ANALYZING RG CODE':^80}")
+        logger.info(f"{'RG Code: ' + rg_code:^80}")
+        logger.info("=" * 80)
+
+        try:
+            # 1. Get all nodes associated with this RG code
+            logger.info(f"📊 Finding all nodes with RG code {rg_code}...")
+            rg_nodes = self.db_service.get_nodes_by_rg_code(rg_code, hours_back=self.config.recent_hours * 2)
+            
+            if not rg_nodes:
+                logger.warning(f"❌ No nodes found with RG code {rg_code}. Skipping analysis.")
+                logger.info("=" * 80 + "\n")
+                return
+            
+            logger.info(f"✅ Found {len(rg_nodes)} nodes with RG code {rg_code}")
+            logger.info(f"   Sample nodes: {', '.join(rg_nodes[:3])}{'...' if len(rg_nodes) > 3 else ''}")
+            
+            # 2. Get aggregated data for all nodes with this RG code
+            logger.info(f"📊 Fetching aggregated historical data for the past {self.config.historical_days} days...")
+            df_rg = self.db_service.get_aggregated_data_by_rg_code(rg_code, self.config.historical_days)
+            
+            if df_rg.empty:
+                logger.warning(f"❌ No historical data found for RG code {rg_code}. Skipping analysis.")
+                logger.info("=" * 80 + "\n")
+                return
+                
+            logger.info(f"✅ Retrieved {len(df_rg)} aggregated data points")
+            
+            # 3. Get total traffic data across all RGs for comparison
+            logger.info(f"📊 Fetching total traffic data across all RGs for comparison...")
+            all_rg_nodes = self.db_service.get_distinct_rg_nodes(hours_back=self.config.recent_hours * 2)
+            df_total = self.db_service.get_aggregated_rg_data(all_rg_nodes, self.config.historical_days)
+            
+            if df_total.empty:
+                logger.warning(f"❌ No total traffic data available. Continuing with RG-specific analysis only.")
+            else:
+                logger.info(f"✅ Retrieved {len(df_total)} total traffic data points")
+                
+            # 4. Detect anomalies on total DL and UL traffic
+            logger.info(f"🔍 Running anomaly detection on downlink traffic...")
+            dl_detection_result = self.anomaly_detector.detect_anomalies(df_total, 'rg_downlink')
+            
+            logger.info(f"🔍 Running anomaly detection on uplink traffic...")
+            ul_detection_result = self.anomaly_detector.detect_anomalies(df_total, 'rg_uplink')
+            
+            if not dl_detection_result['success'] or not ul_detection_result['success']:
+                error_msg = []
+                if not dl_detection_result['success']:
+                    error_msg.append(f"DL analysis: {dl_detection_result['error']}")
+                if not ul_detection_result['success']:
+                    error_msg.append(f"UL analysis: {ul_detection_result['error']}")
+                    
+                logger.error(f"❌ Anomaly detection failed: {', '.join(error_msg)}")
+                logger.info("=" * 80 + "\n")
+                return
+                
+            df_dl_anomalies = dl_detection_result['data_with_anomalies']
+            df_ul_anomalies = ul_detection_result['data_with_anomalies']
+            
+            # Merge anomalies from both analyses
+            df_total_with_anomalies = df_total.copy()
+            df_total_with_anomalies['dl_anomaly'] = False
+            df_total_with_anomalies['ul_anomaly'] = False
+            
+            # Add DL anomalies
+            for idx, row in df_dl_anomalies[df_dl_anomalies['anomaly'] == True].iterrows():
+                mask = df_total_with_anomalies['timestamp'] == row['timestamp']
+                if any(mask):
+                    df_total_with_anomalies.loc[mask, 'dl_anomaly'] = True
+            
+            # Add UL anomalies
+            for idx, row in df_ul_anomalies[df_ul_anomalies['anomaly'] == True].iterrows():
+                mask = df_total_with_anomalies['timestamp'] == row['timestamp']
+                if any(mask):
+                    df_total_with_anomalies.loc[mask, 'ul_anomaly'] = True
+                    
+            # Add combined anomaly flag
+            df_total_with_anomalies['anomaly'] = df_total_with_anomalies['dl_anomaly'] | df_total_with_anomalies['ul_anomaly']
+            
+            # Count recent anomalies
+            recent_dl_anomalies = df_dl_anomalies[
+                (df_dl_anomalies['timestamp'] >= datetime.now() - timedelta(hours=self.config.recent_hours)) &
+                (df_dl_anomalies['anomaly'] == True)
+            ]
+            num_recent_dl_anomalies = len(recent_dl_anomalies)
+            
+            recent_ul_anomalies = df_ul_anomalies[
+                (df_ul_anomalies['timestamp'] >= datetime.now() - timedelta(hours=self.config.recent_hours)) &
+                (df_ul_anomalies['anomaly'] == True)
+            ]
+            num_recent_ul_anomalies = len(recent_ul_anomalies)
+            
+            # Total anomalies
+            num_recent_anomalies = num_recent_dl_anomalies + num_recent_ul_anomalies
+            
+            # Summarized results
+            logger.info(f"\n{'ANALYSIS RESULTS':^80}")
+            logger.info(f"{'-' * 40:^80}")
+            logger.info(f"Time window: Last {self.config.recent_hours} hours | Alert threshold: > {self.config.min_anomalies_for_alert}")
+            logger.info(f"DL anomalies detected: {num_recent_dl_anomalies}")
+            logger.info(f"UL anomalies detected: {num_recent_ul_anomalies}")
+            logger.info(f"Total anomalies detected: {num_recent_anomalies}")
+            
+            # Determine if alert is needed
+            alert_needed = num_recent_anomalies > self.config.min_anomalies_for_alert
+            
+            # 5. Generate visualizations
+            plot_paths = []
+            
+            logger.info(f"\n📈 Generating RG code traffic analysis visualization...")
+            
+            # Create separate DFs for RG code DL and UL
+            df_rg_dl = df_rg[['timestamp', 'rg_downlink']].copy()
+            df_rg_ul = df_rg[['timestamp', 'rg_uplink']].copy()
+            
+            # Generate visualization for 36 hours
+            plot_path_36h = self.viz_service.plot_rg_code_analysis(
+                rg_code=rg_code,
+                df_total=df_total,
+                df_total_with_anomalies=df_total_with_anomalies,
+                df_rg_dl=df_rg_dl,
+                df_rg_ul=df_rg_ul,
+                time_range='36 Hours'
+            )
+            
+            if plot_path_36h:
+                logger.info(f"✅ 36-Hour RG code analysis plot saved to: {plot_path_36h}")
+                plot_paths.append(plot_path_36h)
+                
+            # Generate visualization for 30 days
+            plot_path_30d = self.viz_service.plot_rg_code_analysis(
+                rg_code=rg_code,
+                df_total=df_total,
+                df_total_with_anomalies=df_total_with_anomalies,
+                df_rg_dl=df_rg_dl,
+                df_rg_ul=df_rg_ul,
+                time_range='30 Days'
+            )
+            
+            if plot_path_30d:
+                logger.info(f"✅ 30-Day RG code analysis plot saved to: {plot_path_30d}")
+                plot_paths.append(plot_path_30d)
+                
+            # 6. Send email alert if significant anomalies found
+            logger.info(f"\n{'ALERT STATUS':^80}")
+            logger.info(f"{'-' * 40:^80}")
+            
+            if alert_needed:
+                severity = "CRITICAL" if num_recent_anomalies >= self.config.min_anomalies_for_alert * 2 else "WARNING"
+                severity_icon = "🔴" if severity == "CRITICAL" else "🟠"
+                
+                logger.info(f"{severity_icon} {severity} ALERT will be sent for RG CODE {rg_code}")
+                logger.info(f"📧 Recipients: {test_email_recipient if test_email_recipient else self.config.email_to}")
+                
+                alert_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                # Create a more detailed summary for the email
+                summary = f"{num_recent_anomalies} anomalies detected for RG code {rg_code} traffic (DL: {num_recent_dl_anomalies}, UL: {num_recent_ul_anomalies}) in the last {self.config.recent_hours} hours."
+                
+                additional_details_parts = [
+                    f"<b>RG Code Analysis:</b> {rg_code}",
+                    f"<b>Nodes Included:</b> {', '.join(rg_nodes[:5])}{'...' if len(rg_nodes) > 5 else ''} ({len(rg_nodes)} total)",
+                    f"<b>Detection Period:</b> Last {self.config.recent_hours} hours.",
+                    f"<b>DL Anomalies:</b> {num_recent_dl_anomalies}",
+                    f"<b>UL Anomalies:</b> {num_recent_ul_anomalies}",
+                    f"<b>Total Anomalies:</b> {num_recent_anomalies}",
+                    f"<b>Sensitivity Threshold:</b> {self.config.sensitivity}",
+                    f"<b>Minimum Anomalies for Alert:</b> {self.config.min_anomalies_for_alert}"
+                ]
+                
+                # Add anomaly details if available
+                if num_recent_dl_anomalies > 0:
+                    additional_details_parts.append("<br><b>Recent DL Anomaly Values (Timestamp, Actual, Forecasted Low, Forecasted High):</b>")
+                    for _, row in recent_dl_anomalies.head(3).iterrows():
+                        additional_details_parts.append(
+                            f"- {row['timestamp'].strftime('%H:%M')} : {row['rg_downlink']:.2f} (Expected Range: {row['yhat_lower']:.2f} - {row['yhat_upper']:.2f})"
+                        )
+                
+                if num_recent_ul_anomalies > 0:
+                    additional_details_parts.append("<br><b>Recent UL Anomaly Values (Timestamp, Actual, Forecasted Low, Forecasted High):</b>")
+                    for _, row in recent_ul_anomalies.head(3).iterrows():
+                        additional_details_parts.append(
+                            f"- {row['timestamp'].strftime('%H:%M')} : {row['rg_uplink']:.2f} (Expected Range: {row['yhat_lower']:.2f} - {row['yhat_upper']:.2f})"
+                        )
+                
+                additional_details = "<br>".join(additional_details_parts)
+
+                email_subject = f"{severity} ALERT: RG Code {rg_code} Traffic Anomalies Detected"
+                
+                # Prepare data for email placeholders
+                current_traffic_val = "N/A"
+                baseline_val = "N/A"
+                threshold_val_lower = "N/A"
+                threshold_val_upper = "N/A"
+                
+                # CIDs for the plots
+                plot_cid_36_hours = "plot_36_hours_cid"
+                plot_cid_30_days = "plot_30_days_cid"
+
+                body_params = {
+                    'node_name': f"RG Code {rg_code}",
+                    'kpi_name': f"Traffic Analysis (DL & UL)",
+                    'alert_time': alert_time,
+                    'severity': severity,
+                    'summary': summary,
+                    'additional_details': additional_details,
+                    'system_id': self.config.system_id,
+                    'num_recent_anomalies': str(num_recent_anomalies),
+                    'detection_period': f"{self.config.recent_hours} hours",
+                    'ticket_number': f"RG-{datetime.now().strftime('%Y')}-{rg_code}-{str(hash(alert_time) % 10000).zfill(4)}",
+                    
+                    # Placeholders from email template
+                    'interface': f"RG Code {rg_code} - Traffic Analysis",
+                    'detected_time': alert_time,
+                    'anomaly_type': "Multiple Traffic Pattern Anomalies", 
+                    'current_traffic': str(num_recent_anomalies), 
+                    'threshold_exceeded': f"> {self.config.min_anomalies_for_alert}", 
+                    'duration': f"Last {self.config.recent_hours}h", 
+                    'affected_users': f'{len(rg_nodes)}', 
+                    
+                    # CIDs for plots
+                    'traffic_trend': plot_cid_36_hours,
+                    'performance_metrics': plot_cid_30_days,
+                    
+                    # File paths for plots
+                    'plot_30_days_file_path': plot_path_30d, 
+                    'plot_36_hours_file_path': plot_path_36h, 
+                }
+
+                to_recipients = [test_email_recipient] if test_email_recipient else None
+                cc_recipients = [] if test_email_recipient else None # No CC if sending test email
+
+                email_result = self.email_service.send_alert_email(
+                    email_subject, 
+                    body_params, 
+                    plot_path_30d if plot_path_30d else plot_path_36h,
+                    to_override=to_recipients,
+                    cc_override=cc_recipients
+                )
+                
+                logger.info(f"✉️ Email status: {'✅ Sent' if email_result else '❌ Failed'}")
+                
+            else:
+                logger.info(f"✅ No alert needed - {num_recent_anomalies} anomalies below threshold (> {self.config.min_anomalies_for_alert})")
+            
+            # Clean output/charts directory after analyzing each case
+            self._clean_output_directory()
+            
+            self.processed_nodes_count += 1
+            logger.info("=" * 80 + "\n")
+
+        except Exception as e:
+            logger.error(f"❗ Error processing RG code {rg_code}: {e}", exc_info=True)
+            logger.info("=" * 80 + "\n")
 
     def _log_summary(self, start_time: datetime):
         """Logs a summary of the workflow execution."""
@@ -964,7 +1477,6 @@ class AnomalyWorkflow:
         logger.info(f"{'📧 Email template:':<30} {self.email_service.email_template_path.name} [{template_status}]")
         
         logger.info("\n" + "=" * 80)
-
 
     def run_rg_aggregated_analysis(self, rg_base: str, rg_nodes: List[str], cg_nodes: List[str], metric_column: str = 'total_rg', test_email_recipient: Optional[str] = None) -> None:
         """Run anomaly detection and alerting for aggregated RG traffic from all associated CG nodes."""
@@ -1437,8 +1949,14 @@ class AnomalyWorkflow:
         except Exception as e:
             logger.warning(f"Error cleaning output directory: {e}")
 
-    def run_workflow(self, test_mode: bool = False) -> None:
-        """Run the full anomaly detection workflow for all relevant nodes."""
+    def run_workflow(self, test_mode: bool = False, use_rg_code_analysis: bool = True) -> None:
+        """Run the full anomaly detection workflow for all relevant nodes or RG codes.
+        
+        Args:
+            test_mode: Whether to run in test mode (sending emails to test recipient)
+            use_rg_code_analysis: Whether to use the new RG code-based analysis (True) or the 
+                                original node-based analysis (False)
+        """
         start_time = datetime.now()
         
         logger.info("\n" + "=" * 80)
@@ -1449,6 +1967,9 @@ class AnomalyWorkflow:
         logger.info(f"{'-' * 40:^80}")
         test_mode_status = '✅ ENABLED' if test_mode else '❌ DISABLED'
         logger.info(f"{'🧪 Test mode:':<30} {test_mode_status}")
+        
+        analysis_mode = 'RG Code-based Analysis' if use_rg_code_analysis else 'Node-based Analysis'
+        logger.info(f"{'�� Analysis mode:':<30} {analysis_mode}")
         
         if test_mode:
             test_recipient = self.config.test_recipient
@@ -1509,64 +2030,101 @@ class AnomalyWorkflow:
             logger.info(f"\n{'✅ ALL PREREQUISITES MET - PROCEEDING WITH WORKFLOW':^80}")
 
         try:
-            logger.info(f"\n{'📋 COLLECTING NODES TO PROCESS':^80}")
-            logger.info(f"{'-' * 40:^80}")
-            
-            # Get all RG nodes for the recent time window
-            rg_nodes_to_process = self.db_service.get_distinct_rg_nodes(hours_back=self.config.recent_hours * 2)
-            if not rg_nodes_to_process:
-                logger.warning(f"{'⚠️ No active RG nodes found':^80}")
-                logger.warning(f"{'No RG nodes were found to process in the recent time window.':^80}")
-                self._log_summary(start_time)
-                return
-
-            logger.info(f"🔍 Found {len(rg_nodes_to_process)} distinct RG nodes for potential analysis")
-
-            if self.config.max_nodes > 0:
-                original_count = len(rg_nodes_to_process)
-                rg_nodes_to_process = rg_nodes_to_process[:self.config.max_nodes]
-                logger.info(f"⚙️ LIMIT APPLIED: Processing {len(rg_nodes_to_process)} of {original_count} RG nodes (max_nodes={self.config.max_nodes})")
-            
-            test_recipient = self.config.test_recipient if test_mode else None
-
-            logger.info(f"\n{'🔄 BEGINNING NODE PROCESSING':^80}")
-            logger.info(f"{'-' * 40:^80}")
-            logger.info(f"Will process {len(rg_nodes_to_process)} RG nodes with KPI: 'total_rg'")
-
-            # Group RG nodes by their base names for aggregated analysis
-            rg_groups = {}
-            for rg_node in rg_nodes_to_process:
-                rg_base = self.db_service.get_rg_base_name(rg_node)
-                if rg_base not in rg_groups:
-                    rg_groups[rg_base] = []
-                rg_groups[rg_base].append(rg_node)
-            
-            logger.info(f"🔗 Grouped {len(rg_nodes_to_process)} RG nodes into {len(rg_groups)} RG groups:")
-            for rg_base, nodes in rg_groups.items():
-                logger.info(f"   - {rg_base}: {len(nodes)} nodes")
-
-            processed_rg_groups = 0
-            for i, (rg_base, rg_nodes_in_group) in enumerate(rg_groups.items(), 1):
-                logger.info(f"\n📌 Processing RG group {i}/{len(rg_groups)}: {rg_base}")
-                logger.info(f"   - RG nodes in group: {len(rg_nodes_in_group)}")
+            if use_rg_code_analysis:
+                # RG Code-based workflow
+                logger.info(f"\n{'📋 COLLECTING RG CODES TO PROCESS':^80}")
+                logger.info(f"{'-' * 40:^80}")
                 
-                # Get all CG nodes associated with this RG base
-                cg_nodes = self.db_service.get_associated_cg_nodes(rg_base, hours_back=self.config.recent_hours * 2)
-                logger.info(f"   - Associated CG nodes: {len(cg_nodes)}")
+                # Get all RG codes
+                rg_codes = self.db_service.get_distinct_rg_codes(hours_back=self.config.recent_hours * 2)
+                if not rg_codes:
+                    logger.warning(f"{'⚠️ No active RG codes found':^80}")
+                    logger.warning(f"{'No RG codes were found to process in the recent time window.':^80}")
+                    self._log_summary(start_time)
+                    return
                 
-                # Run aggregated analysis for this RG group
-                self.run_rg_aggregated_analysis(
-                    rg_base=rg_base,
-                    rg_nodes=rg_nodes_in_group,
-                    cg_nodes=cg_nodes,
-                    metric_column='total_rg',
-                    test_email_recipient=test_recipient
-                )
+                logger.info(f"🔍 Found {len(rg_codes)} distinct RG codes for analysis")
                 
-                processed_rg_groups += 1
-                if self.config.max_nodes > 0 and processed_rg_groups >= self.config.max_nodes:
-                    logger.info(f"🛑 Reached max_nodes limit ({self.config.max_nodes}). Stopping further processing.")
-                    break
+                if self.config.max_nodes > 0:
+                    original_count = len(rg_codes)
+                    rg_codes = rg_codes[:self.config.max_nodes]
+                    logger.info(f"⚙️ LIMIT APPLIED: Processing {len(rg_codes)} of {original_count} RG codes (max_nodes={self.config.max_nodes})")
+                
+                test_recipient = self.config.test_recipient if test_mode else None
+                
+                logger.info(f"\n{'🔄 BEGINNING RG CODE PROCESSING':^80}")
+                logger.info(f"{'-' * 40:^80}")
+                logger.info(f"Will process {len(rg_codes)} RG codes")
+                
+                # Process each RG code
+                for i, rg_code in enumerate(rg_codes, 1):
+                    logger.info(f"\n📌 Processing RG code {i}/{len(rg_codes)}: {rg_code}")
+                    self.run_rg_code_analysis(rg_code, test_email_recipient=test_recipient)
+                    
+                    # Break if max_nodes limit reached (redundant check)
+                    if self.config.max_nodes > 0 and i >= self.config.max_nodes:
+                        logger.info(f"🛑 Reached max_nodes limit ({self.config.max_nodes}). Stopping further processing.")
+                        break
+            else:
+                # Original node-based workflow
+                logger.info(f"\n{'📋 COLLECTING NODES TO PROCESS':^80}")
+                logger.info(f"{'-' * 40:^80}")
+                
+                # Get all RG nodes for the recent time window
+                rg_nodes_to_process = self.db_service.get_distinct_rg_nodes(hours_back=self.config.recent_hours * 2)
+                if not rg_nodes_to_process:
+                    logger.warning(f"{'⚠️ No active RG nodes found':^80}")
+                    logger.warning(f"{'No RG nodes were found to process in the recent time window.':^80}")
+                    self._log_summary(start_time)
+                    return
+
+                logger.info(f"🔍 Found {len(rg_nodes_to_process)} distinct RG nodes for potential analysis")
+
+                if self.config.max_nodes > 0:
+                    original_count = len(rg_nodes_to_process)
+                    rg_nodes_to_process = rg_nodes_to_process[:self.config.max_nodes]
+                    logger.info(f"⚙️ LIMIT APPLIED: Processing {len(rg_nodes_to_process)} of {original_count} RG nodes (max_nodes={self.config.max_nodes})")
+                
+                test_recipient = self.config.test_recipient if test_mode else None
+
+                logger.info(f"\n{'🔄 BEGINNING NODE PROCESSING':^80}")
+                logger.info(f"{'-' * 40:^80}")
+                logger.info(f"Will process {len(rg_nodes_to_process)} RG nodes with KPI: 'total_rg'")
+
+                # Group RG nodes by their base names for aggregated analysis
+                rg_groups = {}
+                for rg_node in rg_nodes_to_process:
+                    rg_base = self.db_service.get_rg_base_name(rg_node)
+                    if rg_base not in rg_groups:
+                        rg_groups[rg_base] = []
+                    rg_groups[rg_base].append(rg_node)
+                
+                logger.info(f"🔗 Grouped {len(rg_nodes_to_process)} RG nodes into {len(rg_groups)} RG groups:")
+                for rg_base, nodes in rg_groups.items():
+                    logger.info(f"   - {rg_base}: {len(nodes)} nodes")
+
+                processed_rg_groups = 0
+                for i, (rg_base, rg_nodes_in_group) in enumerate(rg_groups.items(), 1):
+                    logger.info(f"\n📌 Processing RG group {i}/{len(rg_groups)}: {rg_base}")
+                    logger.info(f"   - RG nodes in group: {len(rg_nodes_in_group)}")
+                    
+                    # Get all CG nodes associated with this RG base
+                    cg_nodes = self.db_service.get_associated_cg_nodes(rg_base, hours_back=self.config.recent_hours * 2)
+                    logger.info(f"   - Associated CG nodes: {len(cg_nodes)}")
+                    
+                    # Run aggregated analysis for this RG group
+                    self.run_rg_aggregated_analysis(
+                        rg_base=rg_base,
+                        rg_nodes=rg_nodes_in_group,
+                        cg_nodes=cg_nodes,
+                        metric_column='total_rg',
+                        test_email_recipient=test_recipient
+                    )
+                    
+                    processed_rg_groups += 1
+                    if self.config.max_nodes > 0 and processed_rg_groups >= self.config.max_nodes:
+                        logger.info(f"🛑 Reached max_nodes limit ({self.config.max_nodes}). Stopping further processing.")
+                        break
         
         except Exception as e:
             logger.error(f"\n{'❗ CRITICAL ERROR':^80}")
@@ -1584,6 +2142,8 @@ def main():
     # Example: python final_anomaly_workflow.py --test
     #          python final_anomaly_workflow.py --node SG_CORE_TH1_GE_0_0_1 --test
     #          python final_anomaly_workflow.py --max-nodes 5
+    #          python final_anomaly_workflow.py --rg-code 70 --test
+    #          python final_anomaly_workflow.py --all-rg-codes --test
 
     import argparse
     parser = argparse.ArgumentParser(description="Network KPI Anomaly Detection Workflow.")
@@ -1611,6 +2171,24 @@ def main():
         default=config_temp.max_nodes, # Default from ConfigManager
         help=f"Maximum number of nodes to process (0 for all, default from env: {config_temp.max_nodes}). Overrides .env value if specified."
     )
+    # Add new argument for RG code analysis
+    parser.add_argument(
+        "--rg-code", 
+        type=str, 
+        help="Run analysis for a specific RG code (e.g., '70')."
+    )
+    # Add argument to run all RG codes
+    parser.add_argument(
+        "--all-rg-codes", 
+        action="store_true", 
+        help="Run analysis for all RG codes in the system."
+    )
+    # Add argument to select analysis mode
+    parser.add_argument(
+        "--use-original-mode",
+        action="store_true",
+        help="Use the original node-based analysis instead of the new RG code-based analysis."
+    )
     
     args = parser.parse_args()
 
@@ -1624,14 +2202,17 @@ def main():
     # Format command-line args nicely
     cli_args = [
         ('--test', '✅ Active' if args.test else '❌ Inactive', 'Run in test mode'),
-        ('--node', args.node if args.node else 'Not specified (analyzing all nodes)', 'Single node analysis'),
+        ('--node', args.node if args.node else 'Not specified', 'Single node analysis'),
+        ('--rg-code', args.rg_code if args.rg_code else 'Not specified', 'RG code analysis'),
+        ('--all-rg-codes', '✅ Active' if args.all_rg_codes else '❌ Inactive', 'Process all RG codes'),
+        ('--use-original-mode', '✅ Active' if args.use_original_mode else '❌ Inactive', 'Use original node-based analysis'),
         ('--kpi', args.kpi, 'KPI to analyze'),
         ('--max-nodes', f"{args.max_nodes} {'(default)' if args.max_nodes == config_temp.max_nodes else '(custom)'}", 
          '0 = process all nodes, >0 = limit to specified count')
     ]
     
     for arg, value, description in cli_args:
-        logger.info(f"{arg:<15} {value:<40} {description}")
+        logger.info(f"{arg:<20} {value:<40} {description}")
     
     workflow = AnomalyWorkflow()
     
@@ -1642,7 +2223,62 @@ def main():
         logger.info(f"Overriding 'max_nodes' from CLI: {args.max_nodes} (was {workflow.config.max_nodes})")
         workflow.config.max_nodes = args.max_nodes
 
-    if args.node:
+    # Process a single RG code
+    if args.rg_code:
+        logger.info(f"\n{'🎯 RUNNING RG CODE ANALYSIS':^80}")
+        logger.info(f"{'-' * 40:^80}")
+        logger.info(f"RG Code: {args.rg_code}")
+        if args.test:
+            logger.info(f"Mode: Test mode (email to {workflow.config.test_recipient or 'default recipients'})")
+        
+        test_recipient = workflow.config.test_recipient if args.test else None
+        if args.test and not test_recipient:
+             logger.warning(f"{'⚠️ WARNING: Test mode enabled but no test recipient configured':^80}")
+        
+        # For single RG code, we call _log_summary manually after analysis
+        single_start_time = datetime.now()
+        workflow.run_rg_code_analysis(args.rg_code, test_email_recipient=test_recipient)
+        workflow._log_summary(single_start_time)
+    
+    # Process all RG codes
+    elif args.all_rg_codes:
+        logger.info(f"\n{'🌐 RUNNING ALL RG CODES ANALYSIS':^80}")
+        logger.info(f"{'-' * 40:^80}")
+        if args.test:
+            logger.info(f"Mode: Test mode (email to {workflow.config.test_recipient or 'default recipients'})")
+        
+        test_recipient = workflow.config.test_recipient if args.test else None
+        if args.test and not test_recipient:
+             logger.warning(f"{'⚠️ WARNING: Test mode enabled but no test recipient configured':^80}")
+             
+        # Get all RG codes
+        rg_codes = workflow.db_service.get_distinct_rg_codes(hours_back=workflow.config.recent_hours * 2)
+        if not rg_codes:
+            logger.warning(f"No RG codes found in the database for the last {workflow.config.recent_hours * 2} hours. Exiting.")
+            return
+            
+        logger.info(f"Found {len(rg_codes)} distinct RG codes to analyze")
+        logger.info(f"Sample RG codes: {', '.join(rg_codes[:5])}{'...' if len(rg_codes) > 5 else ''}")
+        
+        # Start time for summary
+        all_codes_start_time = datetime.now()
+        
+        # Apply max_nodes limit if specified
+        if workflow.config.max_nodes > 0 and workflow.config.max_nodes < len(rg_codes):
+            original_count = len(rg_codes)
+            rg_codes = rg_codes[:workflow.config.max_nodes]
+            logger.info(f"⚙️ LIMIT APPLIED: Processing {len(rg_codes)} of {original_count} RG codes (max_nodes={workflow.config.max_nodes})")
+        
+        # Process each RG code
+        for i, rg_code in enumerate(rg_codes, 1):
+            logger.info(f"\n📌 Processing RG code {i}/{len(rg_codes)}: {rg_code}")
+            workflow.run_rg_code_analysis(rg_code, test_email_recipient=test_recipient)
+            
+        # Log summary
+        workflow._log_summary(all_codes_start_time)
+        
+    # Process a specific node
+    elif args.node:
         logger.info(f"\n{'🎯 RUNNING SINGLE NODE/RG GROUP ANALYSIS':^80}")
         logger.info(f"{'-' * 40:^80}")
         logger.info(f"Node: {args.node}")
@@ -1687,8 +2323,11 @@ def main():
         logger.info(f"\n{'🌐 RUNNING FULL WORKFLOW':^80}")
         logger.info(f"{'-' * 40:^80}")
         logger.info(f"Mode: {'Test mode' if args.test else 'Production mode'}")
-        logger.info(f"Analysis will process all available nodes (limited to {workflow.config.max_nodes if workflow.config.max_nodes > 0 else 'ALL'})")
-        workflow.run_workflow(test_mode=args.test)
+        logger.info(f"Analysis will process all available {'nodes' if args.use_original_mode else 'RG codes'} (limited to {workflow.config.max_nodes if workflow.config.max_nodes > 0 else 'ALL'})")
+        
+        # Run the full workflow with the selected analysis mode
+        use_rg_code_analysis = not args.use_original_mode  # Default to new RG code analysis unless --use-original-mode is specified
+        workflow.run_workflow(test_mode=args.test, use_rg_code_analysis=use_rg_code_analysis)
 
 if __name__ == "__main__":
     main() 
