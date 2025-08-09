@@ -1,51 +1,58 @@
-
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Network KPI Anomaly Alert</title>
-            </head>
-            <body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;">
-                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f4f4f4;">
-                    <tr>
-                        <td align="center" style="padding: 20px 0;">
-                            <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border: 1px solid #dddddd; border-radius: 5px;">
-                                <!-- Header -->
-                                <tr>
-                                    <td align="center" style="padding: 20px 0; background-color: ${header_color}; border-bottom: 1px solid #cccccc; border-radius: 5px 5px 0 0;">
-                                        <h1 style="margin: 0; color: #ffffff; font-size: 24px;">Network KPI Anomaly Alert</h1>
-                                    </td>
-                                </tr>
-                                <!-- Body -->
-                                <tr>
-                                    <td style="padding: 20px;">
-                                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                                            <tr><td style="padding-bottom: 10px;"><strong>Alert for Node:</strong> ${node_name}</td></tr>
-                                            <tr><td style="padding-bottom: 10px;"><strong>KPI:</strong> ${kpi_name}</td></tr>
-                                            <tr><td style="padding-bottom: 10px;"><strong>Time:</strong> ${alert_time}</td></tr>
-                                            <tr><td style="padding-bottom: 10px;"><strong>Severity:</strong> <span style="color: ${severity_color}; font-weight: bold;">${severity}</span></td></tr>
-                                            <tr><td style="padding-bottom: 10px;"><strong>Summary:</strong> ${summary}</td></tr>
-                                            <tr><td style="padding-bottom: 10px;"><strong>Details:</strong> ${additional_details}</td></tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <!-- Chart -->
-                                <tr>
-                                    <td align="center" style="padding: 0 20px 20px 20px;">
-                                        <h2 style="font-size: 18px; color: #333333; margin-top: 0;">Anomaly Chart</h2>
-                                        <img src="cid:${plot_cid}" alt="Anomaly Chart" style="max-width: 100%; height: auto; border: 1px solid #cccccc;">
-                                    </td>
-                                </tr>
-                                <!-- Footer -->
-                                <tr>
-                                    <td align="center" style="padding: 15px; background-color: #333333; color: #ffffff; font-size: 12px; border-radius: 0 0 5px 5px;">
-                                        This is an automated alert from the Network Monitoring System. System ID: ${system_id}
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' lang='en'>
+<head>
+    <meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <meta http-equiv='X-UA-Compatible' content='IE=edge' />
+    <meta name='format-detection' content='telephone=no' />
+    <title>RG Interface Traffic Alert</title>
+    <style>
+        /* Reset styles for email clients */
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+        body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
+        a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; font-size: inherit !important; font-family: inherit !important; font-weight: inherit !important; line-height: inherit !important; }
+        /* Responsive design */
+        @media screen and (max-width: 600px) {
+            .container { width: 100% !important; max-width: 100% !important; }
+            .stack { display: block !important; width: 100% !important; padding: 0 0 20px 0 !important; }
+            .hide-mobile { display: none !important; }
+            .mobile-padding { padding: 20px !important; }
+        }
+    </style>
+</head>
+<body style='margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #f4f4f4;'>
+    <table width='100%' border='0' cellspacing='0' cellpadding='0' style='max-width: 800px; margin: 0 auto; background-color: #ffffff; border-radius: 10px;'>
+        <tr>
+            <td align='center' style='padding: 20px 0; background-color: ${header_color}; border-radius: 5px 5px 0 0;'>
+                <h1 style='margin: 0; color: #ffffff; font-size: 24px;'>RG Interface Traffic Alert</h1>
+            </td>
+        </tr>
+        <tr>
+            <td style='padding: 20px;'>
+                <table width='100%' border='0' cellspacing='0' cellpadding='0'>
+                    <tr><td style='padding-bottom: 10px;'><strong>Alert for Node:</strong> ${node_name}</td></tr>
+                    <tr><td style='padding-bottom: 10px;'><strong>KPI:</strong> ${kpi_name}</td></tr>
+                    <tr><td style='padding-bottom: 10px;'><strong>Time:</strong> ${alert_time}</td></tr>
+                    <tr><td style='padding-bottom: 10px;'><strong>Severity:</strong> <span style='color: ${severity_color}; font-weight: bold;'>${severity}</span></td></tr>
+                    <tr><td style='padding-bottom: 10px;'><strong>Summary:</strong> ${summary}</td></tr>
+                    <tr><td style='padding-bottom: 10px;'><strong>Details:</strong> ${additional_details}</td></tr>
                 </table>
-            </body>
-            </html>
+            </td>
+        </tr>
+        <tr>
+            <td align='center' style='padding: 20px;'>
+                <h2 style='font-size: 18px; color: #333333;'>Traffic Analysis</h2>
+                <img src='cid:${plot_cid}' alt='Traffic Analysis Chart' style='max-width: 100%; height: auto; border: 1px solid #cccccc;'>
+            </td>
+        </tr>
+        <tr>
+            <td align='center' style='padding: 15px; background-color: #333333; color: #ffffff; font-size: 12px; border-radius: 0 0 5px 5px;'>
+                This is an automated alert from the Network Monitoring System. System ID: ${system_id}
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
             

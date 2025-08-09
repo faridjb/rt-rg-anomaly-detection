@@ -3,3 +3,6 @@
 .cursorignore
 cron_output.log
 .env 
+
+# Ignore generated charts
+output/charts/*.png
