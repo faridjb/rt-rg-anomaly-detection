@@ -4,13 +4,13 @@ Final Production-Ready Anomaly Detection Workflow
 
 This script implements the complete network KPI anomaly detection workflow:
 1. Loads environment variables from .env file
-2. Uses email template from templates/email_templates/sg_rg_traffic_alert.html
+2. Uses email template from templates/email_templates/sg_rg_traffic_alert_compatible.html
 3. Includes improved x-axis plotting for better readability
 4. Email-compatible template rendering
 5. Comprehensive error handling and logging
 
 Usage:
-    python scripts/final_anomaly_workflow.py
+    python3 main.py [--test] [--rg-code <code>] [--all-rg-codes] [--use-original-mode] [--node <name>] [--kpi <column>] [--max-nodes <N>]
 
 Author: Performance Tools Team
 Version: 1.0 - Final Production Release
@@ -34,8 +34,8 @@ import io
 import logging
 from string import Template
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+# Add src to path for imports (script now resides at project root)
+sys.path.insert(0, str(Path(__file__).parent / 'src'))
 sys.path.insert(0, str(Path(__file__).parent))
 
 # Suppress warnings for cleaner output
@@ -51,8 +51,8 @@ logger = logging.getLogger(__name__)
 # Try to load environment variables from .env file
 try:
     from dotenv import load_dotenv
-    # Load .env file
-    env_path = Path(__file__).parent.parent / '.env'
+    # Load .env file (located at project root)
+    env_path = Path(__file__).parent / '.env'
     if env_path.exists():
         load_dotenv(env_path)
         DOTENV_AVAILABLE = True
