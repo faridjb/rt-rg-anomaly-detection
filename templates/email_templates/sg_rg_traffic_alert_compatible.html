@@ -73,9 +73,10 @@
                                             <span style='font-size: 20px; margin-right: 8px;'>⚠️</span> Traffic Anomaly Detected
                                         </h2>
                                         <p style='margin: 5px 0; font-size: 14px;'><strong>Interface:</strong> <span style='color: #ffeaa7;'>${interface}</span></p>
-                                        <p style='margin: 5px 0; font-size: 14px;'><strong>Node:</strong> <span style='color: #ffeaa7;'>${node_name}</span></p>
+                                        <p style='margin: 5px 0; font-size: 14px;'><strong>RG-CG Aggregated:</strong> <span style='color: #ffeaa7;'>${rg_cg_list}</span></p>
                                         <p style='margin: 5px 0; font-size: 14px;'><strong>Detected:</strong> <span style='color: #ffeaa7;'>${detected_time}</span></p>
-                                        <p style='margin: 5px 0; font-size: 14px;'><strong>Anomaly Type:</strong> <span style='color: #ffeaa7;'>${anomaly_type}</span></p>
+                                        <p style='margin: 5px 0; font-size: 14px;'><strong>Issue Type:</strong> <span style='color: #ffeaa7;'>${issue_type}</span></p>
+                                        <p style='margin: 5px 0; font-size: 14px;'><strong>Reason:</strong> <span style='color: #ffeaa7;'>${issue_reason}</span></p>
                                         <p style='margin: 5px 0; font-size: 14px;'><strong>Severity Level:</strong> <span style='color: #ffeaa7;'>${severity}</span></p>
                                     </td>
                                 </tr>
@@ -114,8 +115,8 @@
                                         <table width='100%' border='0' cellspacing='0' cellpadding='0'>
                                             <tr>
                                                 <td align='center' style='background-color: #ffffff; padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 3px 10px rgba(0,0,0,0.1); border: 1px solid #e9ecef;' class='border-radius'>
-                                                    <div style='font-size: 24px; font-weight: bold; color: #c850c0; margin-bottom: 5px;'>${threshold_exceeded}</div>
-                                                    <div style='font-size: 11px; color: #636e72; text-transform: uppercase; letter-spacing: 1px;'>Threshold Exceeded</div>
+                                                    <div style='font-size: 14px; font-weight: bold; color: #c850c0; margin-bottom: 5px;'>${mean_dl_ul_72h}</div>
+                                                    <div style='font-size: 11px; color: #636e72; text-transform: uppercase; letter-spacing: 1px;'>Mean 72h Traffic (GB/h)</div>
                                                 </td>
                                             </tr>
                                         </table>
@@ -173,12 +174,12 @@
                             <table width='100%' border='0' cellspacing='0' cellpadding='0' style='margin: 20px 0;'>
                                 <tr>
                                     <td style='background-color: #f8f9fa; padding: 20px; border-radius: 10px; border: 2px solid #e9ecef; text-align: center;' class='border-radius'>
-                                        <h3 style='font-size: 18px; font-weight: bold; color: #2d3436; margin: 0 0 15px 0;'>📊 36 Hours Analysis</h3>
+                                        <h3 style='font-size: 18px; font-weight: bold; color: #2d3436; margin: 0 0 15px 0;'>📊 1 Month Downlink Traffic Analysis</h3>
                                         <table width='100%' border='0' cellspacing='0' cellpadding='0'>
                                             <tr>
                                                 <td align='center' style='background-color: #ddd6fe; height: 250px; border-radius: 8px; font-size: 16px; color: #6366f1; font-weight: bold; border: 2px dashed #a5b4fc; vertical-align: middle;' class='border-radius'>
                                                     <div><img src="cid:${traffic_trend}" alt="36 Hours Analysis Chart" style="max-width: 100%; height: auto; border: 1px solid #cccccc;"/></div>
-                                                    <small style='margin-top: 10px; display: block; font-size: 12px;'>Performance metrics and KPI chart (36 Hours)</small>
+                                                    <small style='margin-top: 10px; display: block; font-size: 12px;'>Real-time traffic monitoring chart (30 Days)</small>
                                                 </td>
                                             </tr>
                                         </table>
@@ -194,6 +195,38 @@
                                             <tr>
                                                 <td align='center' style='background-color: #ddd6fe; height: 250px; border-radius: 8px; font-size: 16px; color: #6366f1; font-weight: bold; border: 2px dashed #a5b4fc; vertical-align: middle;' class='border-radius'>
                                                     <div><img src="cid:${performance_metrics}" alt="One Month Analysis Chart" style="max-width: 100%; height: auto; border: 1px solid #cccccc;"/></div>
+                                                    <small style='margin-top: 10px; display: block; font-size: 12px;'>Real-time traffic monitoring chart (30 Days)</small>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            <!-- Per-CG Downlink Plot -->
+                            <table width='100%' border='0' cellspacing='0' cellpadding='0' style='margin: 20px 0;'>
+                                <tr>
+                                    <td style='background-color: #f8f9fa; padding: 20px; border-radius: 10px; border: 2px solid #e9ecef; text-align: center;' class='border-radius'>
+                                        <h3 style='font-size: 18px; font-weight: bold; color: #2d3436; margin: 0 0 15px 0;'>🔻 Downlink per CG (30 Days)</h3>
+                                        <table width='100%' border='0' cellspacing='0' cellpadding='0'>
+                                            <tr>
+                                                <td align='center' style='background-color: #f1f5f9; border-radius: 8px; border: 2px dashed #cbd5e1; vertical-align: middle;' class='border-radius'>
+                                                    <div><img src="cid:${dl_cg_plot}" alt="Downlink per CG Chart" style="max-width: 100%; height: auto; border: 1px solid #cccccc;"/></div>
+                                                    <small style='margin-top: 10px; display: block; font-size: 12px;'>Real-time traffic monitoring chart (30 Days)</small>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            <!-- Per-CG Uplink Plot -->
+                            <table width='100%' border='0' cellspacing='0' cellpadding='0' style='margin: 20px 0;'>
+                                <tr>
+                                    <td style='background-color: #f8f9fa; padding: 20px; border-radius: 10px; border: 2px solid #e9ecef; text-align: center;' class='border-radius'>
+                                        <h3 style='font-size: 18px; font-weight: bold; color: #2d3436; margin: 0 0 15px 0;'>🔺 Uplink per CG (30 Days)</h3>
+                                        <table width='100%' border='0' cellspacing='0' cellpadding='0'>
+                                            <tr>
+                                                <td align='center' style='background-color: #f1f5f9; border-radius: 8px; border: 2px dashed #cbd5e1; vertical-align: middle;' class='border-radius'>
+                                                    <div><img src="cid:${ul_cg_plot}" alt="Uplink per CG Chart" style="max-width: 100%; height: auto; border: 1px solid #cccccc;"/></div>
                                                     <small style='margin-top: 10px; display: block; font-size: 12px;'>Real-time traffic monitoring chart (30 Days)</small>
                                                 </td>
                                             </tr>
