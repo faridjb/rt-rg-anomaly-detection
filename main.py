@@ -1056,16 +1056,31 @@ class VisualizationService:
                 if not dl_daily_mean.empty:
                     # Ignore first/last points for smoother trendline visibility
                     dl_plot_df = dl_daily_mean.iloc[1:-1] if len(dl_daily_mean) > 2 else dl_daily_mean
-                    sns.lineplot(x='timestamp', y='daily_mean', data=dl_plot_df, label='DL Daily Mean', ax=ax3, color='orange', linestyle='--', linewidth=3)
-                # Overlay recent decrement trendline(s) in red solid
-                if mid_trend_days and mid_trend_days > 0 and not dl_daily_mean.empty:
-                    dl_mid_seg = dl_daily_mean.tail(mid_trend_days)
-                    if len(dl_mid_seg) >= 2:
-                        sns.lineplot(x='timestamp', y='daily_mean', data=dl_mid_seg, label=f'Mid-tier Recent Trend ({mid_trend_days}d)', ax=ax3, color='red', linestyle='-', linewidth=2)
-                if high_trend_days and high_trend_days > 0 and not dl_daily_mean.empty:
-                    dl_high_seg = dl_daily_mean.tail(high_trend_days)
-                    if len(dl_high_seg) >= 2:
-                        sns.lineplot(x='timestamp', y='daily_mean', data=dl_high_seg, label=f'High-tier Recent Trend ({high_trend_days}d)', ax=ax3, color='red', linestyle='-', linewidth=2)
+                    # Extend dashed line to the true last point
+                    dl_plot_df_ext = pd.concat([dl_plot_df, dl_daily_mean.tail(1)], ignore_index=True)
+                    dl_plot_df_ext = dl_plot_df_ext.drop_duplicates(subset=['timestamp'], keep='last')
+                    sns.lineplot(x='timestamp', y='daily_mean', data=dl_plot_df_ext, label='DL Daily Mean', ax=ax3, color='orange', linestyle='--', linewidth=3)
+                    # Mark last daily mean point
+                    last_point = dl_daily_mean.dropna().tail(1)
+                    if not last_point.empty:
+                        ax3.scatter(last_point['timestamp'].values, last_point['daily_mean'].values, s=90, color='orange', edgecolors='black', zorder=6, label='DL Trend Last')
+                    # Overlay recent decrement trendline(s) in red solid
+                    if mid_trend_days and mid_trend_days > 0 and not dl_daily_mean.empty:
+                        dl_mid_seg = dl_daily_mean.tail(mid_trend_days)
+                        if len(dl_mid_seg) >= 2:
+                            sns.lineplot(x='timestamp', y='daily_mean', data=dl_mid_seg, label=f'Mid-tier Recent Trend ({mid_trend_days}d)', ax=ax3, color='red', linestyle='-', linewidth=2)
+                            # Mark last point of mid-tier segment
+                            lp_mid = dl_mid_seg.dropna().tail(1)
+                            if not lp_mid.empty:
+                                ax3.scatter(lp_mid['timestamp'].values, lp_mid['daily_mean'].values, s=90, color='red', edgecolors='black', zorder=7)
+                    if high_trend_days and high_trend_days > 0 and not dl_daily_mean.empty:
+                        dl_high_seg = dl_daily_mean.tail(high_trend_days)
+                        if len(dl_high_seg) >= 2:
+                            sns.lineplot(x='timestamp', y='daily_mean', data=dl_high_seg, label=f'High-tier Recent Trend ({high_trend_days}d)', ax=ax3, color='red', linestyle='-', linewidth=2)
+                            # Mark last point of high-tier segment
+                            lp_high = dl_high_seg.dropna().tail(1)
+                            if not lp_high.empty:
+                                ax3.scatter(lp_high['timestamp'].values, lp_high['daily_mean'].values, s=90, color='red', edgecolors='black', zorder=7)
             except Exception as e:
                 logger.warning(f"Failed to compute DL daily mean trendline: {e}")
 
@@ -1109,16 +1124,31 @@ class VisualizationService:
                 if not ul_daily_mean.empty:
                     # Ignore first/last points for smoother trendline visibility
                     ul_plot_df = ul_daily_mean.iloc[1:-1] if len(ul_daily_mean) > 2 else ul_daily_mean
-                    sns.lineplot(x='timestamp', y='daily_mean', data=ul_plot_df, label='UL Daily Mean', ax=ax4, color='brown', linestyle='--', linewidth=3)
-                # Overlay recent decrement trendline(s) in red solid
-                if mid_trend_days and mid_trend_days > 0 and not ul_daily_mean.empty:
-                    ul_mid_seg = ul_daily_mean.tail(mid_trend_days)
-                    if len(ul_mid_seg) >= 2:
-                        sns.lineplot(x='timestamp', y='daily_mean', data=ul_mid_seg, label=f'Mid-tier Recent Trend ({mid_trend_days}d)', ax=ax4, color='red', linestyle='-', linewidth=2)
-                if high_trend_days and high_trend_days > 0 and not ul_daily_mean.empty:
-                    ul_high_seg = ul_daily_mean.tail(high_trend_days)
-                    if len(ul_high_seg) >= 2:
-                        sns.lineplot(x='timestamp', y='daily_mean', data=ul_high_seg, label=f'High-tier Recent Trend ({high_trend_days}d)', ax=ax4, color='red', linestyle='-', linewidth=2)
+                    # Extend dashed line to the true last point
+                    ul_plot_df_ext = pd.concat([ul_plot_df, ul_daily_mean.tail(1)], ignore_index=True)
+                    ul_plot_df_ext = ul_plot_df_ext.drop_duplicates(subset=['timestamp'], keep='last')
+                    sns.lineplot(x='timestamp', y='daily_mean', data=ul_plot_df_ext, label='UL Daily Mean', ax=ax4, color='brown', linestyle='--', linewidth=3)
+                    # Mark last daily mean point
+                    last_point_ul = ul_daily_mean.dropna().tail(1)
+                    if not last_point_ul.empty:
+                        ax4.scatter(last_point_ul['timestamp'].values, last_point_ul['daily_mean'].values, s=90, color='brown', edgecolors='black', zorder=6, label='UL Trend Last')
+                    # Overlay recent decrement trendline(s) in red solid
+                    if mid_trend_days and mid_trend_days > 0 and not ul_daily_mean.empty:
+                        ul_mid_seg = ul_daily_mean.tail(mid_trend_days)
+                        if len(ul_mid_seg) >= 2:
+                            sns.lineplot(x='timestamp', y='daily_mean', data=ul_mid_seg, label=f'Mid-tier Recent Trend ({mid_trend_days}d)', ax=ax4, color='red', linestyle='-', linewidth=2)
+                            # Mark last point of mid-tier segment
+                            lp_mid_ul = ul_mid_seg.dropna().tail(1)
+                            if not lp_mid_ul.empty:
+                                ax4.scatter(lp_mid_ul['timestamp'].values, lp_mid_ul['daily_mean'].values, s=90, color='red', edgecolors='black', zorder=7)
+                    if high_trend_days and high_trend_days > 0 and not ul_daily_mean.empty:
+                        ul_high_seg = ul_daily_mean.tail(high_trend_days)
+                        if len(ul_high_seg) >= 2:
+                            sns.lineplot(x='timestamp', y='daily_mean', data=ul_high_seg, label=f'High-tier Recent Trend ({high_trend_days}d)', ax=ax4, color='red', linestyle='-', linewidth=2)
+                            # Mark last point of high-tier segment
+                            lp_high_ul = ul_high_seg.dropna().tail(1)
+                            if not lp_high_ul.empty:
+                                ax4.scatter(lp_high_ul['timestamp'].values, lp_high_ul['daily_mean'].values, s=90, color='red', edgecolors='black', zorder=7)
             except Exception as e:
                 logger.warning(f"Failed to compute UL daily mean trendline: {e}")
 
